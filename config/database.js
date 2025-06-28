@@ -15,7 +15,7 @@ if (process.env.DATABASE_URL) {
         }
     });
 } else {
-    // Si no, usamos la configuración local de .env para 
+    // Si no, usamos la configuración local de .env para desarrollo.
     sequelize = new Sequelize(
         process.env.DB_NAME,
         process.env.DB_USER,
