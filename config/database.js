@@ -1,19 +1,31 @@
-// Importar la clase Sequelize desde la librería
 const { Sequelize } = require('sequelize');
 
-// Cargar las variables de entorno para la configuración de la base de datos
-const dbName = process.env.DB_NAME;
-const dbUser = process.env.DB_USER;
-const dbPassword = process.env.DB_PASSWORD;
-const dbHost = process.env.DB_HOST;
-const dbPort = process.env.DB_PORT;
+let sequelize;
 
-// Crear una nueva instancia de Sequelize con la configuración
-const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
-    host: dbHost,
-    port: dbPort,
-    dialect: 'mysql' // Indicar que estamos usando MySQL
-});
+// Si la variable de entorno DATABASE_URL existe (en producción), la usamos.
+if (process.env.DATABASE_URL) {
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
+        dialect: 'postgres',
+        protocol: 'postgres',
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        }
+    });
+} else {
+    // Si no, usamos la configuración local de .env para desarrollo.
+    sequelize = new Sequelize(
+        process.env.DB_NAME,
+        process.env.DB_USER,
+        process.env.DB_PASSWORD,
+        {
+            host: process.env.DB_HOST,
+            port: process.env.DB_PORT,
+            dialect: 'mysql'
+        }
+    );
+}
 
-// Exportar la instancia de Sequelize para poder usarla en otras partes de la aplicación
 module.exports = sequelize;
