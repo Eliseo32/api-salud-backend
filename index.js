@@ -61,7 +61,7 @@ app.get('/', (req, res) => {
     res.send('API de Salud Comunitaria de Santa María - v1');
 });
 
-// Puerto del Servidor
+
 const PORT = process.env.PORT || 3000;
 
 // Función de Arranque del Servidor
