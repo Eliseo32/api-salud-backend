@@ -1,28 +1,26 @@
 const { Sequelize } = require('sequelize');
-
-// Es una buena práctica cargar dotenv aquí también para asegurar que las variables estén disponibles
 require('dotenv').config();
 
 let sequelize;
 
-// Imprimimos la variable para ver qué está recibiendo Render.
-console.log("DATABASE_URL encontrada:", process.env.DATABASE_URL ? "Sí" : "No");
-
-// Si la variable de entorno DATABASE_URL existe (en producción), la usamos.
-if (process.env.DATABASE_URL) {
+// Verificamos si estamos en un entorno de producción (Render define NODE_ENV como 'production')
+if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+    // --- CONFIGURACIÓN PARA PRODUCCIÓN (RENDER + NEON) ---
     sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
-        protocol: 'postgres',
+        // Opciones de conexión específicas para producción
         dialectOptions: {
+            // Habilitar SSL y configurarlo para que no rechace la conexión por certificados autofirmados
             ssl: {
                 require: true,
                 rejectUnauthorized: false
             }
-        }
+        },
+        // Es una buena práctica desactivar los logs de SQL en producción
+        logging: false
     });
 } else {
-    // Si no, usamos la configuración local de .env para desarrollo.
-    console.log("Usando configuración local de MySQL.");
+    // --- CONFIGURACIÓN PARA DESARROLLO LOCAL (XAMPP) ---
     sequelize = new Sequelize(
         process.env.DB_NAME,
         process.env.DB_USER,
