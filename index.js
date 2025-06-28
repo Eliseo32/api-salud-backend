@@ -1,90 +1,57 @@
-// Cargar las variables de entorno desde el archivo .env
 require('dotenv').config();
-
-// Importaciones de librerías y módulos
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 
-// Importación de TODOS los Modelos (para que Sequelize los sincronice)
-const CentroDeSalud = require('./models/centro.model');
-const Paciente = require('./models/paciente.model');
-const Profesional = require('./models/profesional.model');
-const Turno = require('./models/turno.model');
-const Disponibilidad = require('./models/disponibilidad.model');
+// Importar todos los modelos para que Sequelize los conozca
+require('./models/centro.model');
+require('./models/paciente.model');
+require('./models/profesional.model');
+require('./models/turno.model');
+require('./models/disponibilidad.model');
 
-// --- DEFINIR RELACIONES ENTRE MODELOS ---
-// Un Centro de Salud tiene muchos Profesionales
-CentroDeSalud.hasMany(Profesional, { foreignKey: 'centroId' });
-Profesional.belongsTo(CentroDeSalud, { foreignKey: 'centroId' });
+// Importar las relaciones para que se establezcan
+require('./models/relations'); // Crearemos este archivo ahora
 
-// Un Paciente puede tener muchos Turnos
-Paciente.hasMany(Turno, { foreignKey: 'pacienteId' });
-Turno.belongsTo(Paciente, { foreignKey: 'pacienteId' });
-
-// Un Profesional puede tener muchos Turnos
-Profesional.hasMany(Turno, { foreignKey: 'profesionalId' });
-Turno.belongsTo(Profesional, { foreignKey: 'profesionalId' });
-
-// Un Profesional puede tener muchos horarios de Disponibilidad
-Profesional.hasMany(Disponibilidad, { foreignKey: 'profesionalId' });
-Disponibilidad.belongsTo(Profesional, { foreignKey: 'profesionalId' });
-
-
-// Importación de Rutas
-const centrosRoutes = require('./routes/centros.routes.js');
-const authRoutes = require('./routes/auth.routes.js');
-const pacientesRoutes = require('./routes/pacientes.routes.js');
-const turnosRoutes = require('./routes/turnos.routes.js');
-const profesionalesRoutes = require('./routes/profesionales.routes.js');
-const adminRoutes = require('./routes/admin.routes.js');
-const disponibilidadRoutes = require('./routes/disponibilidad.routes.js');
-
-// Creación de la aplicación Express
 const app = express();
-
-// Middlewares
-app.use(cors()); // Permite peticiones desde otros orígenes (nuestro frontend)
-app.use(express.json()); // Para poder entender JSON en el cuerpo de las peticiones
+app.use(cors());
+app.use(express.json());
 
 // Configuración de Rutas
-app.use('/api/v1/centros', centrosRoutes);
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/pacientes', pacientesRoutes);
-app.use('/api/v1/turnos', turnosRoutes);
-app.use('/api/v1/profesionales', profesionalesRoutes);
-app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/disponibilidad', disponibilidadRoutes);
+app.use('/api/v1/centros', require('./routes/centros.routes'));
+app.use('/api/v1/auth', require('./routes/auth.routes'));
+app.use('/api/v1/pacientes', require('./routes/pacientes.routes'));
+app.use('/api/v1/turnos', require('./routes/turnos.routes'));
+app.use('/api/v1/profesionales', require('./routes/profesionales.routes'));
+app.use('/api/v1/admin', require('./routes/admin.routes'));
+app.use('/api/v1/disponibilidad', require('./routes/disponibilidad.routes'));
 
-// Ruta Raíz
 app.get('/', (req, res) => {
     res.send('API de Salud Comunitaria de Santa María - v1');
 });
 
-
 const PORT = process.env.PORT || 3000;
 
-// Función de Arranque del Servidor
 async function startServer() {
     try {
-        // Sincroniza los modelos con la base de datos.
-        // Crea las tablas si no existen.
-        await sequelize.sync({ force: false });
-        console.log('Modelos sincronizados con la base de datos.');
-
-        // Verifica la conexión a la base de datos.
+        // 1. Autenticar la conexión a la base de datos PRIMERO.
         await sequelize.authenticate();
         console.log('Conexión a la base de datos establecida correctamente.');
 
-        // Inicia el servidor para escuchar peticiones.
+        // 2. Sincronizar modelos DESPUÉS de una conexión exitosa.
+        await sequelize.sync({ force: false });
+        console.log('Modelos sincronizados con la base de datos.');
+
+        // 3. Iniciar el servidor Express SOLO si todo lo anterior tuvo éxito.
         app.listen(PORT, () => {
-            console.log(`Servidor iniciado en http://localhost:${PORT}`);
+            console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
         });
 
     } catch (error) {
-        console.error('No se pudo conectar a la base de datos:', error);
+        console.error('*** ERROR FATAL AL INICIAR EL SERVIDOR ***');
+        console.error(error);
+        process.exit(1); // Detiene el proceso si no se puede conectar a la DB
     }
 }
 
-// Ejecutar la función de arranque
 startServer();
